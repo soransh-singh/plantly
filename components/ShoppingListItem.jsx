@@ -1,8 +1,20 @@
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { theme } from "../theme";
 import { AntDesign, Entypo } from "@expo/vector-icons";
 
-export function ShoppingListItem({ name, isCompleted }) {
+export function ShoppingListItem({
+  name,
+  isCompleted,
+  onDelete,
+  onToggleComplete,
+}) {
   const handleDelete = () => {
     Alert.alert(
       "Are you sure you want to delete this?",
@@ -10,7 +22,7 @@ export function ShoppingListItem({ name, isCompleted }) {
       [
         {
           text: "yes",
-          onPress: () => console.log("ok, deleting"),
+          onPress: () => onDelete(),
           style: "destructive",
         },
         {
@@ -21,11 +33,12 @@ export function ShoppingListItem({ name, isCompleted }) {
     );
   };
   return (
-    <View
+    <Pressable
       style={[
         styles.itemContainer,
         isCompleted ? styles.completedContainer : undefined,
       ]}
+      onPress={onToggleComplete}
     >
       <TouchableOpacity
         onPress={() => {
@@ -58,7 +71,7 @@ export function ShoppingListItem({ name, isCompleted }) {
           {name}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

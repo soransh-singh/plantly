@@ -8,23 +8,66 @@ import {
 } from "react-native";
 import { theme } from "../theme";
 import { ShoppingListItem } from "../components/ShoppingListItem";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getFromStorage, saveToStorage } from "../utils/storage";
 
-const initialState = [];
+const storageKey = "shopping-list";
 
 export default function App() {
-  const [ShoppingList, setShoppingList] = useState(initialState);
+  const [ShoppingList, setShoppingList] = useState([]);
   const [value, setValue] = useState("");
+
+  useEffect(() => {
+    const fetchInitials = async () => {
+      const data = await getFromStorage(storageKey);
+      if (data) {
+        setShoppingList(data);
+      }
+    };
+
+    fetchInitials();
+  }, []);
 
   const handleSubmit = () => {
     if (value) {
-      setShoppingList((prev) => [
-        ...prev,
-        { id: new Date().toString(), name: value },
-      ]);
+      const newShoppingList = [
+        {
+          id: new Date().toString(),
+          name: value,
+          lastUpdatedTimestamp: Date.now(),
+        },
+        ...ShoppingList,
+      ];
+      setShoppingList(newShoppingList);
+      saveToStorage(storageKey, newShoppingList);
       setValue("");
     }
   };
+
+  const handleDelete = (id) => {
+    const newShoppingList = ShoppingList.filter((item) => item.id !== id);
+    saveToStorage(newShoppingList);
+    setShoppingList(newShoppingList);
+  };
+
+  const handleToggleComplete = (id) => {
+    const newShoppingList = ShoppingList.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
+          completedAtTimeStamp: item.completedAtTimeStamp
+            ? undefined
+            : Date.now(),
+          lastUpdatedTimestamp: Date.now(),
+        };
+      } else {
+        return item;
+      }
+    });
+    saveToStorage(newShoppingList);
+    setShoppingList(newShoppingList);
+  };
+
   return (
     <FlatList
       ListHeaderComponent={
@@ -42,15 +85,43 @@ export default function App() {
           <Text>Your Shoping list is empty.</Text>
         </View>
       }
-      data={ShoppingList}
+      data={orderShoppingList(ShoppingList)}
       style={styles.container}
       contentContainerStyle={styles.contentContainer}
       stickyHeaderIndices={[0]}
       renderItem={({ item }) => (
-        <ShoppingListItem name={item.name} key={item.id} />
+        <ShoppingListItem
+          name={item.name}
+          key={item.id}
+          onDelete={() => handleDelete(item.id)}
+          onToggleComplete={() => handleToggleComplete(item.id)}
+          isCompleted={Boolean(item.completedAtTimeStamp)}
+        />
       )}
     />
   );
+}
+
+function orderShoppingList(shoppingList) {
+  return shoppingList.sort((item1, item2) => {
+    if (item1.completedAtTimeStamp && item2.completedAtTimeStamp) {
+      return item1.completedAtTimeStamp - item2.completedAtTimeStamp;
+    }
+
+    if (item1.completedAtTimeStamp && !item2.completedAtTimeStamp) {
+      return 1;
+    }
+
+    if (!item1.completedAtTimeStamp && item2.completedAtTimeStamp) {
+      return -1;
+    }
+
+    if (!item1.completedAtTimeStamp && !item2.completedAtTimeStamp) {
+      return item2.lastUpdatedTimestamp - item1.lastUpdatedTimestamp;
+    }
+
+    return 0;
+  });
 }
 
 const styles = StyleSheet.create({
