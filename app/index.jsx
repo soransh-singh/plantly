@@ -1,5 +1,6 @@
 import {
   FlatList,
+  LayoutAnimation,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import { theme } from "../theme";
 import { ShoppingListItem } from "../components/ShoppingListItem";
 import { useEffect, useState } from "react";
 import { getFromStorage, saveToStorage } from "../utils/storage";
+import * as Haptics from "expo-haptics";
 
 const storageKey = "shopping-list";
 
@@ -21,6 +23,7 @@ export default function App() {
     const fetchInitials = async () => {
       const data = await getFromStorage(storageKey);
       if (data) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setShoppingList(data);
       }
     };
@@ -38,6 +41,7 @@ export default function App() {
         },
         ...ShoppingList,
       ];
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setShoppingList(newShoppingList);
       saveToStorage(storageKey, newShoppingList);
       setValue("");
@@ -46,13 +50,20 @@ export default function App() {
 
   const handleDelete = (id) => {
     const newShoppingList = ShoppingList.filter((item) => item.id !== id);
-    saveToStorage(newShoppingList);
+    saveToStorage(storageKey, newShoppingList);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShoppingList(newShoppingList);
   };
 
   const handleToggleComplete = (id) => {
     const newShoppingList = ShoppingList.map((item) => {
       if (item.id === id) {
+        if (item.completedAtTimeStamp) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
         return {
           ...item,
           completedAtTimeStamp: item.completedAtTimeStamp
@@ -64,7 +75,8 @@ export default function App() {
         return item;
       }
     });
-    saveToStorage(newShoppingList);
+    saveToStorage(storageKey, newShoppingList);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShoppingList(newShoppingList);
   };
 
